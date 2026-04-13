@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💕 任務系統 — 使用者</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+:root {
+  --bg:#0f0a0a; --surface:#1a1010; --card:#221515;
+  --border:rgba(180,100,80,0.2); --rose:#c9614a; --rose-light:#e8896e;
+  --gold:#d4a853; --gold-light:#f0c97a; --cream:#f5ede0;
+  --muted:#7a5f58; --text:#f0ddd4; --text-dim:#9a7870;
+  --green:#6aad8a; --red:#c06060;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:0.4;}
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 60% 40% at 20% 20%,rgba(201,97,74,0.08) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 80% 80%,rgba(212,168,83,0.06) 0%,transparent 60%);}
+
+/* LOGIN */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:var(–bg);padding:24px;transition:opacity .5s,transform .5s;}
+#login.hidden{opacity:0;pointer-events:none;transform:scale(.97);}
+.login-box{width:100%;max-width:400px;background:var(–card);border:1px solid var(–border);border-radius:24px;padding:36px 28px;}
+.login-eyebrow{font-size:11px;letter-spacing:5px;text-transform:uppercase;color:var(–gold);text-align:center;margin-bottom:12px;}
+.login-title{font-family:‘Cormorant Garamond’,serif;font-size:36px;font-weight:400;color:var(–cream);text-align:center;margin-bottom:4px;}
+.login-title em{font-style:italic;color:var(–rose-light);}
+.login-sub{font-size:12px;color:var(–muted);text-align:center;margin-bottom:28px;}
+.avatar-wrap{position:relative;width:90px;height:90px;margin:0 auto 20px;}
+.avatar-circle{width:90px;height:90px;border-radius:50%;background:var(–surface);border:2px solid var(–border);display:flex;align-items:center;justify-content:center;font-size:36px;overflow:hidden;}
+.avatar-circle img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;}
+.avatar-circle img.loaded{display:block;}
+.upload-btn{position:absolute;bottom:0;right:0;width:28px;height:28px;background:var(–gold);border-radius:50%;border:none;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);}
+.upload-btn input{display:none;}
+.flabel{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);margin-bottom:8px;}
+.finput{width:100%;background:var(–surface);border:1px solid var(–border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(–cream);font-family:‘Noto Sans TC’,sans-serif;outline:none;transition:border-color .2s;text-align:center;letter-spacing:4px;margin-bottom:16px;}
+.finput:focus{border-color:var(–rose);}
+.finput.error{border-color:var(–red);animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.btn-enter{width:100%;padding:14px;background:linear-gradient(135deg,var(–rose),#a04035);border:none;border-radius:12px;color:white;font-size:15px;font-family:‘Noto Sans TC’,sans-serif;font-weight:500;cursor:pointer;letter-spacing:1px;transition:all .3s;}
+.btn-enter:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,97,74,0.35);}
+.hint{margin-top:10px;font-size:11px;color:var(–muted);text-align:center;font-style:italic;}
+
+/* APP */
+#app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:5;opacity:0;pointer-events:none;transition:opacity .5s;}
+#app.visible{opacity:1;pointer-events:all;}
+
+/* Topbar */
+.topbar{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(–border);background:rgba(26,16,16,0.95);backdrop-filter:blur(12px);gap:12px;flex-shrink:0;z-index:50;}
+.tb-avatar{width:38px;height:38px;border-radius:50%;background:var(–card);border:2px solid var(–rose);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;flex-shrink:0;}
+.tb-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;}
+.tb-avatar img.loaded{display:block;}
+.tb-name{font-family:‘Cormorant Garamond’,serif;font-size:18px;color:var(–cream);flex:1;}
+.pts-pill{display:flex;align-items:center;gap:6px;background:rgba(212,168,83,0.12);border:1px solid rgba(212,168,83,0.3);border-radius:50px;padding:6px 14px;}
+.pts-val{font-family:‘Cormorant Garamond’,serif;font-size:22px;font-weight:600;color:var(–gold-light);line-height:1;}
+.pts-lbl{font-size:10px;color:var(–muted);letter-spacing:1px;}
+.logout-btn{background:transparent;border:1px solid var(–border);border-radius:8px;padding:7px 11px;color:var(–muted);font-size:11px;cursor:pointer;font-family:‘Noto Sans TC’,sans-serif;transition:all .2s;}
+.logout-btn:hover{border-color:var(–rose);color:var(–rose);}
+
+/* Content */
+.content{flex:1;overflow-y:auto;padding:22px 18px 90px;}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(18,10,10,0.97);backdrop-filter:blur(16px);border-top:1px solid var(–border);display:flex;z-index:50;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px;border:none;background:transparent;color:var(–muted);font-family:‘Noto Sans TC’,sans-serif;font-size:10px;gap:4px;cursor:pointer;transition:all .25s;letter-spacing:.5px;}
+.nav-btn .ico{font-size:21px;transition:transform .25s;}
+.nav-btn.active{color:var(–rose-light);}
+.nav-btn.active .ico{transform:translateY(-3px);}
+
+/* Panels */
+.panel{display:none;animation:fadeUp .35s ease;}
+.panel.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Section */
+.sec-title{font-family:‘Cormorant Garamond’,serif;font-size:26px;color:var(–cream);margin-bottom:4px;}
+.sec-sub{font-size:12px;color:var(–muted);letter-spacing:1px;margin-bottom:20px;}
+
+/* Cards */
+.card{background:var(–card);border:1px solid var(–border);border-radius:16px;padding:18px 18px;margin-bottom:12px;position:relative;overflow:hidden;transition:all .3s;}
+.card::before{content:’’;position:absolute;left:0;top:0;bottom:0;width:3px;}
+.card.s-locked::before{background:var(–muted);}
+.card.s-pending::before{background:var(–gold);}
+.card.s-approved::before{background:var(–green);}
+.card.s-rejected::before{background:var(–red);}
+.card-head{display:flex;gap:12px;margin-bottom:10px;}
+.card-ico{font-size:26px;flex-shrink:0;}
+.card-body{flex:1;}
+.card-title{font-family:‘Cormorant Garamond’,serif;font-size:17px;color:var(–cream);margin-bottom:3px;}
+.card-desc{font-size:13px;color:var(–text-dim);line-height:1.5;}
+.card-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+.chip-pts{background:rgba(212,168,83,0.15);color:var(–gold-light);border:1px solid rgba(212,168,83,0.25);}
+.chip-diff{background:rgba(201,97,74,0.12);color:var(–rose-light);border:1px solid rgba(201,97,74,0.2);}
+.chip-locked{background:rgba(122,95,88,0.2);color:var(–muted);}
+.chip-pending{background:rgba(212,168,83,0.15);color:var(–gold-light);}
+.chip-approved{background:rgba(106,173,138,0.15);color:var(–green);}
+.chip-rejected{background:rgba(192,96,96,0.15);color:var(–red);}
+.card-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;}
+.btn{padding:9px 18px;border-radius:10px;border:none;cursor:pointer;font-family:‘Noto Sans TC’,sans-serif;font-size:12px;font-weight:500;transition:all .2s;}
+.btn:hover{transform:scale(1.04);}
+.btn-gold{background:linear-gradient(135deg,var(–gold),#b8873a);color:#1a1010;font-weight:700;}
+.btn-ghost{background:transparent;color:var(–muted);border:1px solid var(–border);}
+.btn-ghost:hover{border-color:var(–rose);color:var(–rose-light);}
+.reject-box{margin-top:8px;background:rgba(192,96,96,0.1);border:1px solid rgba(192,96,96,0.25);border-radius:10px;padding:8px 12px;font-size:12px;color:var(–red);font-style:italic;}
+
+/* Stats */
+.stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.stat-card{background:var(–card);border:1px solid var(–border);border-radius:14px;padding:14px;text-align:center;}
+.stat-val{font-family:‘Cormorant Garamond’,serif;font-size:30px;color:var(–gold-light);}
+.stat-lbl{font-size:10px;color:var(–muted);letter-spacing:1px;margin-top:2px;}
+
+/* Treasury */
+.tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.t-card{background:var(–card);border:1px solid var(–border);border-radius:14px;padding:18px 14px;text-align:center;}
+.t-ico{font-size:34px;margin-bottom:8px;}
+.t-name{font-family:‘Cormorant Garamond’,serif;font-size:15px;color:var(–cream);margin-bottom:4px;}
+.t-pts{font-size:12px;color:var(–gold);}
+.t-date{font-size:11px;color:var(–muted);margin-top:4px;}
+
+/* History */
+.h-item{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(180,100,80,0.08);}
+.h-ico{font-size:22px;}
+.h-body{flex:1;}
+.h-title{font-size:13px;color:var(–cream);}
+.h-date{font-size:11px;color:var(–muted);margin-top:2px;}
+.h-pts{font-family:‘Cormorant Garamond’,serif;font-size:18px;font-weight:600;}
+.h-plus{color:var(–green);}
+.h-minus{color:var(–red);}
+
+/* Empty */
+.empty{text-align:center;padding:44px 20px;color:var(–muted);}
+.empty-ico{font-size:44px;margin-bottom:12px;}
+.empty p{font-size:13px;line-height:1.7;}
+
+/* Toast */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);background:var(–card);border:1px solid var(–border);color:var(–cream);padding:11px 22px;border-radius:50px;font-size:13px;z-index:300;opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,0.5);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(–border);border-radius:2px;}
+
+/* Color picker menu */
+.color-menu-wrap{position:relative;}
+.color-menu-btn{background:transparent;border:1px solid var(–border);border-radius:8px;padding:7px 11px;color:var(–muted);font-size:15px;cursor:pointer;transition:all .2s;line-height:1;}
+.color-menu-btn:hover{border-color:var(–rose);color:var(–rose-light);}
+.color-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(–card);border:1px solid var(–border);border-radius:16px;padding:16px;z-index:200;width:220px;box-shadow:0 12px 40px rgba(0,0,0,0.6);display:none;}
+.color-menu.open{display:block;animation:fadeUp .25s ease;}
+.color-menu-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);margin-bottom:12px;}
+.color-swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+.swatch{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}
+.swatch:hover{transform:scale(1.15);}
+.swatch.active{border-color:white;box-shadow:0 0 0 2px rgba(255,255,255,0.3);}
+.color-menu-label{font-size:11px;color:var(–muted);margin-bottom:6px;letter-spacing:1px;}
+.custom-color-row{display:flex;align-items:center;gap:8px;}
+.custom-color-row input[type=color]{width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;background:transparent;padding:0;}
+.custom-color-row span{font-size:12px;color:var(–text-dim);}
+
+.chip-limited{background:rgba(192,80,80,0.2);color:#e88;border:1px solid rgba(192,80,80,0.35);}
+.chip-normal{background:rgba(100,180,120,0.15);color:#8d8;border:1px solid rgba(100,180,120,0.3);}
+.chip-daily{background:rgba(100,150,220,0.15);color:#8af;border:1px solid rgba(100,150,220,0.3);}
+.limited-banner{background:linear-gradient(135deg,rgba(192,80,80,0.22),rgba(138,32,32,0.12));border:1px solid rgba(192,80,80,0.4);border-radius:10px;padding:7px 12px;margin-top:10px;font-size:12px;color:#e88;display:flex;align-items:center;gap:6px;}
+.limited-banner.expired{background:rgba(80,80,80,0.2);border-color:rgba(120,120,120,0.3);color:var(–muted);}
+</style>
+
+</head>
+<body>
+<div class="ambient"></div>
+
+<!-- LOGIN -->
+
+<div id="login">
+  <div class="login-box">
+    <div class="login-eyebrow">✦ Player ✦</div>
+    <h1 class="login-title">愛的<em>任務</em></h1>
+    <p class="login-sub">上傳照片，輸入密語，開始任務</p>
+
+```
+<div class="avatar-wrap">
+  <div class="avatar-circle" id="av-circle">
+    <span id="av-emoji">⚔️</span>
+    <img id="av-img" alt="">
+  </div>
+  <label class="upload-btn" title="上傳照片">
+    📷<input type="file" accept="image/*" onchange="uploadAv(event)">
+  </label>
+</div>
+
+<label class="flabel">通關密語</label>
+<input class="finput" type="password" id="pw" placeholder="輸入密語…" onkeydown="if(event.key==='Enter')login()">
+<button class="btn-enter" onclick="login()">進入 →</button>
+<div class="hint">提示：ily 💕</div>
+```
+
+  </div>
+</div>
+
+<!-- APP -->
+
+<div id="app">
+  <div class="topbar">
+    <div class="tb-avatar" id="tb-av"><span>⚔️</span><img id="tb-img" alt=""></div>
+    <div class="tb-name">勇士</div>
+    <div class="pts-pill">
+      <span>💎</span>
+      <div><div class="pts-val" id="pts-val">0</div><div class="pts-lbl">點數</div></div>
+    </div>
+    <div class="color-menu-wrap">
+      <button class="color-menu-btn" onclick="toggleColorMenu()" title="更換背景顏色">🎨</button>
+      <div class="color-menu" id="color-menu">
+        <div class="color-menu-title">✦ 背景顏色</div>
+        <div class="color-swatches" id="color-swatches"></div>
+        <div class="color-menu-label">自訂顏色</div>
+        <div class="custom-color-row">
+          <input type="color" id="custom-color" value="#0f0a0a">
+          <span>點選選色器</span>
+        </div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">登出</button>
+  </div>
+
+  <div class="content">
+    <!-- 任務管理 -->
+    <div class="panel active" id="p-tasks">
+      <div class="sec-title">任務管理</div>
+      <div class="sec-sub">點選「申請完成」送出解鎖請求</div>
+      <div id="task-list"></div>
+    </div>
+
+```
+<!-- 獎勵管理 -->
+<div class="panel" id="p-rewards">
+  <div class="sec-title">點數管理</div>
+  <div class="sec-sub">用點數申請兌換獎勵</div>
+  <div class="stats2">
+    <div class="stat-card"><div class="stat-val" id="pts-avail">0</div><div class="stat-lbl">可用點數</div></div>
+    <div class="stat-card"><div class="stat-val" id="pts-spent">0</div><div class="stat-lbl">已消費</div></div>
+  </div>
+  <div id="reward-list"></div>
+</div>
+
+<!-- 點數管理 -->
+<div class="panel" id="p-points">
+  <div class="sec-title">獎勵管理</div>
+  <div class="sec-sub">已兌換的獎勵都在這裡</div>
+  <div class="tgrid" id="treasury-grid"></div>
+</div>
+
+<!-- 歷史紀錄 -->
+<div class="panel" id="p-history">
+  <div class="sec-title">歷史紀錄</div>
+  <div class="sec-sub">所有點數變動紀錄</div>
+  <div id="hist-list"></div>
+</div>
+```
+
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="go('tasks',this)"><span class="ico">📜</span>任務管理</button>
+    <button class="nav-btn" onclick="go('rewards',this)"><span class="ico">💰</span>點數管理</button>
+    <button class="nav-btn" onclick="go('points',this)"><span class="ico">🎁</span>獎勵管理</button>
+    <button class="nav-btn" onclick="go('history',this)"><span class="ico">📖</span>歷史紀錄</button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PASS = 'ily';
+
+const FB_URL = 'https://jbtasks-63bec-default-rtdb.firebaseio.com/data.json';
+let _cache = null;
+
+async function getData() {
+  try {
+    const res = await fetch(FB_URL);
+    const d = await res.json();
+    _cache = d || {points:0,tasks:[],rewards:[],treasury:[],history:[],pendingRedeem:[],avatarHim:null};
+  } catch(e) {
+    console.error('getData failed:', e);
+    _cache = _cache || {points:0,tasks:[],rewards:[],treasury:[],history:[],pendingRedeem:[],avatarHim:null};
+  }
+  return _cache;
+}
+
+async function saveData(d) {
+  _cache = d;
+  try {
+    const res = await fetch(FB_URL, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(d)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  } catch(e) {
+    console.error('saveData failed:', e);
+    toast('❌ 儲存失敗：' + e.message);
+  }
+}
+
+async function login() {
+  if(document.getElementById('pw').value !== PASS) {
+    document.getElementById('pw').classList.add('error');
+    setTimeout(()=>document.getElementById('pw').classList.remove('error'),600);
+    toast('密語不對喔 💭'); return;
+  }
+  toast('連線中… 🔄');
+  const d = await getData();
+  if(d.avatarHim) showAvatar(d.avatarHim);
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  refresh();
+}
+function logout() {
+  document.getElementById('pw').value='';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login').classList.remove('hidden');
+}
+
+// ── Nav ──
+function go(tab, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+tab).classList.add('active');
+  btn.classList.add('active');
+  if(tab==='tasks') renderTasks();
+  if(tab==='rewards') renderRewards();
+  if(tab==='points') renderTreasury();
+  if(tab==='history') renderHistory();
+}
+setInterval(()=>{ refresh(); }, 10000);
+
+async function refresh() {
+  const d = await getData();
+  document.getElementById('pts-val').textContent = d.points;
+  document.getElementById('pts-avail').textContent = d.points;
+  const spent = (d.history||[]).filter(h=>h.delta<0).reduce((a,h)=>a+Math.abs(h.delta),0);
+  document.getElementById('pts-spent').textContent = spent;
+  renderTasks();
+}
+
+// ── Tasks ──
+function deadlineText(t){
+  if(t.taskType!=='limited') return '';
+  const now=Date.now();
+  if(t.deadlineType==='until'&&t.deadlineUntil){
+    const ms=new Date(t.deadlineUntil)-now;
+    const expired=ms<0;
+    const abs=Math.abs(ms);
+    const h=Math.floor(abs/3600000),m=Math.floor((abs%3600000)/60000);
+    const timeStr=new Date(t.deadlineUntil).toLocaleString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return '<div class="limited-banner '+(expired?'expired':'')+'">⏰ '+(expired?'已逾期':'截止')+' '+timeStr+(!expired?' (剩 '+h+'h'+m+'m)':'')+'</div>';
+  }
+  if(t.deadlineType==='within'&&t.deadlineFrom&&t.deadlineDuration){
+    const endMs=t.deadlineFrom+t.deadlineDuration;
+    const ms=endMs-now;
+    const expired=ms<0;
+    const abs=Math.abs(ms);
+    const h=Math.floor(abs/3600000),m=Math.floor((abs%3600000)/60000);
+    return '<div class="limited-banner '+(expired?'expired':'')+'">⏰ '+(expired?'已逾期 超時':'剩餘')+' '+h+'h'+m+'m</div>';
+  }
+  return '';
+}
+function typeChip(t){
+  if(!t.taskType||t.taskType==='normal') return '<span class="chip chip-normal">♾️ 常態</span>';
+  if(t.taskType==='daily') return '<span class="chip chip-daily">📅 日常</span>';
+  if(t.taskType==='limited') return '<span class="chip chip-limited">⏰ 限時</span>';
+  return '';
+}
+async function renderTasks() {
+  const d = await getData();
+  const el = document.getElementById('task-list');
+  if(!d.tasks||!d.tasks.length){ el.innerHTML='<div class="empty"><div class="empty-ico">📜</div><p>還沒有任務<br>等她出題吧～</p></div>'; return; }
+  const smap={locked:'🔒 未解鎖',pending:'⏳ 審核中',approved:'✅ 已完成',rejected:'❌ 被駁回'};
+  let rows='';
+  d.tasks.forEach(function(t){
+    const isLimited=t.taskType==='limited';
+    rows+='<div class="card s-'+t.status+(isLimited?' limited-card':'')+'"><div class="card-head"><div class="card-ico">'+(t.icon||'⚔️')+'</div><div class="card-body"><div class="card-title">'+t.title+'</div>'+(t.desc?'<div class="card-desc">'+t.desc+'</div>':'')+'<div class="card-meta"><span class="chip chip-pts">+'+t.pts+' 點</span><span class="chip chip-diff">'+t.diff+'</span>'+typeChip(t)+'<span class="chip chip-'+t.status+'">'+smap[t.status]+'</span></div>'+(t.status==='rejected'&&t.rejectReason?'<div class="reject-box">💬 '+t.rejectReason+'</div>':'')+deadlineText(t)+'</div></div><div class="card-actions">'+(t.status==='locked'?'<button class="btn btn-gold" onclick="applyUnlock(\''+t.id+'\')">🔓 申請完成</button>':'')+(t.status==='rejected'?'<button class="btn btn-ghost" onclick="applyUnlock(\''+t.id+'\')">🔄 重新申請</button>':'')+'</div></div>';
+  });
+  el.innerHTML=rows;
+}
+
+async function applyUnlock(id) {
+  const d = await getData();
+  const t = d.tasks.find(function(x){return String(x.id)===String(id);}); if(!t) return;
+  t.status='pending'; t.rejectReason='';
+  await saveData(d); renderTasks(); toast('申請已送出，等待審核！🙏');
+}
+
+// ── Rewards ──
+async function renderRewards() {
+  const d = await getData();
+  const el = document.getElementById('reward-list');
+  if(!d.rewards.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">🎁</div><p>還沒有獎勵<br>等她新增吧！</p></div>`; return; }
+  if(!d.pendingRedeem) d.pendingRedeem=[];
+  el.innerHTML = d.rewards.map(r=>{
+    const canAfford = d.points >= r.pts;
+    const isPending = !!d.pendingRedeem.find(p=>p.rewardId===r.id&&p.status==='pending');
+    return `<div class="card">
+      <div class="card-head">
+        <div class="card-ico">${r.icon||'🎁'}</div>
+        <div class="card-body">
+          <div class="card-title">${r.name}</div>
+          ${r.desc?`<div class="card-desc">${r.desc}</div>`:''}
+          <div class="card-meta">
+            <span class="chip chip-pts">💎 ${r.pts} 點</span>
+            ${isPending?`<span class="chip chip-pending">⏳ 審核中</span>`:!canAfford?`<span class="chip chip-rejected">點數不足</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="card-actions">
+        ${isPending
+          ? `<span style="font-size:12px;color:var(--gold)">⏳ 等待審核…</span>`
+          : `<button class="btn ${canAfford?'btn-gold':'btn-ghost'}" ${!canAfford?'disabled':''} onclick="applyRedeem(${r.id})">
+              ${canAfford?'📩 申請兌換':'點數不足'}
+            </button>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function applyRedeem(id) {
+  const d = await getData();
+  const r = d.rewards.find(r=>r.id===id); if(!r) return;
+  if(d.points < r.pts){ toast('點數不足！繼續努力 💪'); return; }
+  if(!d.pendingRedeem) d.pendingRedeem=[];
+  if(!confirm(`確定申請兌換「${r.name}」(${r.pts}點)？`)) return;
+  d.pendingRedeem.unshift({id:Date.now(),rewardId:r.id,name:r.name,icon:r.icon,pts:r.pts,status:'pending',date:new Date().toLocaleDateString('zh-TW')});
+  await saveData(d); renderRewards(); toast('兌換申請已送出！✨');
+}
+
+// ── Treasury (點數管理) ──
+async function renderTreasury() {
+  const d = await getData();
+  const el = document.getElementById('treasury-grid');
+  if(!d.treasury||!d.treasury.length){ el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-ico">💰</div><p>寶庫還是空的<br>完成任務後來兌換吧！</p></div>`; return; }
+  el.innerHTML = d.treasury.map(item=>`
+    <div class="t-card">
+      <div class="t-ico">${item.icon||'🎁'}</div>
+      <div class="t-name">${item.name}</div>
+      <div class="t-pts">💎 ${item.pts} 點</div>
+      <div class="t-date">${item.date}</div>
+      <div style="margin-top:6px;font-size:11px;color:${item.redeemed?'var(--muted)':'var(--green)'}">
+        ${item.redeemed?'已使用':'未使用 ✨'}
+      </div>
+    </div>`).join('');
+}
+
+// ── History ──
+async function renderHistory() {
+  const d = await getData();
+  const el = document.getElementById('hist-list');
+  if(!d.history||!d.history.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">📖</div><p>還沒有任何紀錄</p></div>`; return; }
+  el.innerHTML = d.history.map(h=>`
+    <div class="h-item">
+      <div class="h-ico">${h.icon}</div>
+      <div class="h-body"><div class="h-title">${h.title}</div><div class="h-date">${h.date}</div></div>
+      <div class="h-pts ${h.delta>0?'h-plus':'h-minus'}">${h.delta>0?'+':''}${h.delta}</div>
+    </div>`).join('');
+}
+
+function toast(msg){ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),2500); }
+
+// Restore avatar
+(function(){ const d=getData(); if(d.avatarHim) showAvatar(d.avatarHim); })();
+
+// ── Background color picker ──
+const SWATCHES = [
+  {c:'#0f0a0a',label:'原色深紅'},{c:'#0a0a0f',label:'深紫'},{c:'#0a0f0a',label:'深綠'},
+  {c:'#0f0f0a',label:'深金'},{c:'#0a0f0f',label:'深青'},{c:'#1a0a1a',label:'暗紫紅'},
+  {c:'#1a1208',label:'暗琥珀'},{c:'#080f18',label:'深海藍'},{c:'#18080f',label:'深玫瑰'},
+  {c:'#f5ede0',label:'奶油白'},
+];
+function initColorMenu(){
+  const wrap = document.getElementById('color-menu');
+  const saved = localStorage.getItem('bg-color');
+  if(saved){ document.body.style.background = saved; adaptTextColors(saved); }
+
+  const swatchesEl = document.getElementById('color-swatches');
+  swatchesEl.innerHTML = SWATCHES.map((s,i)=>
+    `<div class="swatch ${saved===s.c?'active':''}" style="background:${s.c}" title="${s.label}" onclick="setBg('${s.c}',this)"></div>`
+  ).join('');
+
+  document.getElementById('custom-color').value = saved||'#0f0a0a';
+  document.getElementById('custom-color').addEventListener('input', e=>{
+    setBg(e.target.value, null);
+  });
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.color-menu-wrap')) wrap.classList.remove('open');
+  });
+}
+function toggleColorMenu(){ document.getElementById('color-menu').classList.toggle('open'); }
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  if(hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+  const n=parseInt(hex,16);
+  return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
+}
+function getLuminance(hex){
+  const {r,g,b}=hexToRgb(hex);
+  const [rs,gs,bs]=[r,g,b].map(c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);});
+  return 0.2126*rs+0.7152*gs+0.0722*bs;
+}
+function adaptTextColors(hex){
+  // Parse hex to rgb
+  hex = hex.replace('#','');
+  if(hex.length===3) hex=hex.split('').map(x=>x+x).join('');
+  const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+
+  // Perceived luminance (WCAG)
+  const toLinear=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
+  const lum = 0.2126*toLinear(r)+0.7152*toLinear(g)+0.0722*toLinear(b);
+  const isDark = lum < 0.35;
+
+  const root = document.documentElement;
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,Math.round(v)));
+
+  if(isDark){
+    // Light text on dark bg — shift toward complementary warm/cool tint
+    const boost = v => clamp(v*0.15 + 215, 180, 255);
+    const mid   = v => clamp(v*0.2  + 110, 80,  180);
+    const dim   = v => clamp(v*0.25 + 70,  55,  150);
+    const cardL = v => clamp(v*1.6  + 18,  12,  60);
+    const surfL = v => clamp(v*1.4  + 10,  8,   40);
+
+    root.style.setProperty('--cream',   `rgb(${boost(r)},${boost(g)},${boost(b)})`);
+    root.style.setProperty('--text',    `rgb(${boost(r)},${boost(g)},${boost(b)})`);
+    root.style.setProperty('--text-dim',`rgb(${mid(r)},${mid(g)},${mid(b)})`);
+    root.style.setProperty('--muted',   `rgb(${dim(r)},${dim(g)},${dim(b)})`);
+    root.style.setProperty('--card',    `rgb(${cardL(r)},${cardL(g)},${cardL(b)})`);
+    root.style.setProperty('--surface', `rgb(${surfL(r)},${surfL(g)},${surfL(b)})`);
+    root.style.setProperty('--border',  `rgba(${clamp(r*2+60,40,200)},${clamp(g*2+40,30,180)},${clamp(b*2+40,30,180)},0.22)`);
+  } else {
+    // Dark text on light bg
+    const shadow = v => clamp(v*0.12, 0, 60);
+    const dimT   = v => clamp(v*0.35, 20, 120);
+    const mutedT = v => clamp(v*0.5,  40, 160);
+    const cardL  = v => clamp(v*0.88 - 8, 150, 245);
+    const surfL  = v => clamp(v*0.93 - 4, 170, 252);
+
+    root.style.setProperty('--cream',   `rgb(${shadow(r)},${shadow(g)},${shadow(b)})`);
+    root.style.setProperty('--text',    `rgb(${shadow(r)},${shadow(g)},${shadow(b)})`);
+    root.style.setProperty('--text-dim',`rgb(${dimT(r)},${dimT(g)},${dimT(b)})`);
+    root.style.setProperty('--muted',   `rgb(${mutedT(r)},${mutedT(g)},${mutedT(b)})`);
+    root.style.setProperty('--card',    `rgb(${cardL(r)},${cardL(g)},${cardL(b)})`);
+    root.style.setProperty('--surface', `rgb(${surfL(r)},${surfL(g)},${surfL(b)})`);
+    root.style.setProperty('--border',  `rgba(${clamp(255-r,30,180)},${clamp(255-g,20,160)},${clamp(255-b,20,160)},0.18)`);
+  }
+}
+function setBg(color, swatchEl){
+  document.body.style.background = color;
+  localStorage.setItem('bg-color', color);
+  adaptTextColors(color);
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  if(swatchEl) swatchEl.classList.add('active');
+  document.getElementById('custom-color').value = color;
+}
+
+initColorMenu();
+</script>
+
+</body>
+</html>
