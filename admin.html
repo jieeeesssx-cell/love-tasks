@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👑 任務系統 — 管理員</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+:root{
+  --bg:#0a0a0f;--surface:#10101a;--card:#161622;
+  --border:rgba(100,80,180,0.2);--violet:#7c5cbf;--violet-light:#a98ae8;
+  --gold:#d4a853;--gold-light:#f0c97a;--cream:#ede8f5;
+  --muted:#5f5878;--text:#ddd8f0;--text-dim:#8878a0;
+  --green:#6aad8a;--red:#c06060;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:0.4;}
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 60% 40% at 20% 20%,rgba(124,92,191,0.08) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 80% 80%,rgba(212,168,83,0.05) 0%,transparent 60%);}
+
+/* LOGIN */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:var(–bg);padding:24px;transition:opacity .5s,transform .5s;}
+#login.hidden{opacity:0;pointer-events:none;transform:scale(.97);}
+.login-box{width:100%;max-width:380px;background:var(–card);border:1px solid var(–border);border-radius:24px;padding:36px 28px;}
+.login-eyebrow{font-size:11px;letter-spacing:5px;text-transform:uppercase;color:var(–gold);text-align:center;margin-bottom:12px;}
+.login-title{font-family:‘Cormorant Garamond’,serif;font-size:36px;font-weight:400;color:var(–cream);text-align:center;margin-bottom:4px;}
+.login-title em{font-style:italic;color:var(–violet-light);}
+.login-sub{font-size:12px;color:var(–muted);text-align:center;margin-bottom:28px;}
+.crown{font-size:52px;text-align:center;margin-bottom:20px;}
+.flabel{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);margin-bottom:8px;}
+.finput{width:100%;background:var(–surface);border:1px solid var(–border);border-radius:10px;padding:12px 14px;font-size:15px;color:var(–cream);font-family:‘Noto Sans TC’,sans-serif;outline:none;transition:border-color .2s;text-align:center;letter-spacing:4px;margin-bottom:16px;}
+.finput:focus{border-color:var(–violet);}
+.finput.error{border-color:var(–red);animation:shake .4s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.btn-enter{width:100%;padding:14px;background:linear-gradient(135deg,var(–violet),#5a3a9a);border:none;border-radius:12px;color:white;font-size:15px;font-family:‘Noto Sans TC’,sans-serif;font-weight:500;cursor:pointer;letter-spacing:1px;transition:all .3s;}
+.btn-enter:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(124,92,191,0.4);}
+.hint{margin-top:10px;font-size:11px;color:var(–muted);text-align:center;font-style:italic;}
+
+/* APP */
+#app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:5;opacity:0;pointer-events:none;transition:opacity .5s;}
+#app.visible{opacity:1;pointer-events:all;}
+
+/* Topbar */
+.topbar{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(–border);background:rgba(10,10,18,0.95);backdrop-filter:blur(12px);gap:12px;flex-shrink:0;z-index:50;}
+.tb-crown{font-size:24px;}
+.tb-name{font-family:‘Cormorant Garamond’,serif;font-size:20px;color:var(–cream);flex:1;}
+.tb-role{font-size:10px;color:var(–muted);letter-spacing:2px;text-transform:uppercase;}
+.logout-btn{background:transparent;border:1px solid var(–border);border-radius:8px;padding:7px 11px;color:var(–muted);font-size:11px;cursor:pointer;font-family:‘Noto Sans TC’,sans-serif;transition:all .2s;}
+.logout-btn:hover{border-color:var(–violet);color:var(–violet-light);}
+
+/* Content */
+.content{flex:1;overflow-y:auto;padding:22px 18px 90px;}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(8,8,16,0.97);backdrop-filter:blur(16px);border-top:1px solid var(–border);display:flex;z-index:50;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 4px;border:none;background:transparent;color:var(–muted);font-family:‘Noto Sans TC’,sans-serif;font-size:10px;gap:4px;cursor:pointer;transition:all .25s;letter-spacing:.5px;}
+.nav-btn .ico{font-size:21px;transition:transform .25s;}
+.nav-btn.active{color:var(–violet-light);}
+.nav-btn.active .ico{transform:translateY(-3px);}
+.nbadge{display:inline-block;background:var(–red);color:white;border-radius:50px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:3px;}
+
+/* Panels */
+.panel{display:none;animation:fadeUp .35s ease;}
+.panel.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Section */
+.sec-title{font-family:‘Cormorant Garamond’,serif;font-size:26px;color:var(–cream);margin-bottom:4px;}
+.sec-sub{font-size:12px;color:var(–muted);letter-spacing:1px;margin-bottom:20px;}
+
+/* Cards */
+.card{background:var(–card);border:1px solid var(–border);border-radius:16px;padding:18px;margin-bottom:12px;position:relative;overflow:hidden;}
+.card::before{content:’’;position:absolute;left:0;top:0;bottom:0;width:3px;}
+.card.s-locked::before{background:var(–muted);}
+.card.s-pending::before{background:var(–gold);}
+.card.s-approved::before{background:var(–green);}
+.card.s-rejected::before{background:var(–red);}
+.card-head{display:flex;gap:12px;margin-bottom:10px;}
+.card-ico{font-size:26px;flex-shrink:0;}
+.card-body{flex:1;}
+.card-title{font-family:‘Cormorant Garamond’,serif;font-size:17px;color:var(–cream);margin-bottom:3px;}
+.card-desc{font-size:13px;color:var(–text-dim);line-height:1.5;}
+.card-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+.chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;}
+.chip-pts{background:rgba(212,168,83,0.15);color:var(–gold-light);border:1px solid rgba(212,168,83,0.25);}
+.chip-diff{background:rgba(124,92,191,0.15);color:var(–violet-light);border:1px solid rgba(124,92,191,0.25);}
+.chip-pending{background:rgba(212,168,83,0.15);color:var(–gold-light);}
+.chip-approved{background:rgba(106,173,138,0.15);color:var(–green);}
+.chip-rejected{background:rgba(192,96,96,0.15);color:var(–red);}
+.chip-locked{background:rgba(95,88,120,0.2);color:var(–muted);}
+.card-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{padding:9px 18px;border-radius:10px;border:none;cursor:pointer;font-family:‘Noto Sans TC’,sans-serif;font-size:12px;font-weight:500;transition:all .2s;}
+.btn:hover{transform:scale(1.04);}
+.btn-violet{background:linear-gradient(135deg,var(–violet),#5a3a9a);color:white;}
+.btn-gold{background:linear-gradient(135deg,var(–gold),#b8873a);color:#0a0a10;font-weight:700;}
+.btn-green{background:linear-gradient(135deg,var(–green),#4a8a6a);color:white;}
+.btn-red{background:rgba(192,96,96,0.2);color:var(–red);border:1px solid rgba(192,96,96,0.3);}
+.btn-ghost{background:transparent;color:var(–muted);border:1px solid var(–border);}
+.btn-ghost:hover{border-color:var(–violet);color:var(–violet-light);}
+.btn-full{width:100%;justify-content:center;display:flex;align-items:center;gap:6px;padding:13px;font-size:14px;margin-bottom:10px;}
+
+/* Reject inline */
+.reject-wrap{display:none;margin-top:10px;gap:8px;align-items:center;flex-wrap:wrap;}
+.reject-wrap.show{display:flex;}
+.reject-wrap input{flex:1;min-width:140px;background:var(–surface);border:1px solid rgba(192,96,96,0.4);border-radius:8px;padding:8px 12px;font-size:12px;color:var(–cream);font-family:‘Noto Sans TC’,sans-serif;outline:none;}
+
+/* Form */
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);margin-bottom:7px;}
+.form-input,.form-select,.form-textarea{width:100%;background:var(–surface);border:1px solid var(–border);border-radius:10px;padding:11px 14px;font-size:14px;color:var(–cream);font-family:‘Noto Sans TC’,sans-serif;outline:none;transition:border-color .2s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(–violet);}
+.form-textarea{resize:none;}
+.form-select option{background:#161622;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+
+/* Icon chips */
+.icon-row{display:flex;gap:7px;flex-wrap:wrap;}
+.ic-btn{padding:6px 12px;border-radius:20px;border:1px solid var(–border);background:transparent;color:var(–text-dim);cursor:pointer;font-size:13px;font-family:‘Noto Sans TC’,sans-serif;transition:all .2s;}
+.ic-btn.sel{background:var(–violet);color:white;border-color:var(–violet);}
+
+/* Stats */
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.stat-card{background:var(–card);border:1px solid var(–border);border-radius:14px;padding:14px;text-align:center;}
+.stat-val{font-family:‘Cormorant Garamond’,serif;font-size:28px;color:var(–gold-light);}
+.stat-lbl{font-size:10px;color:var(–muted);letter-spacing:1px;margin-top:2px;}
+
+/* History */
+.h-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(100,80,180,0.08);}
+.h-ico{font-size:22px;}
+.h-body{flex:1;}
+.h-title{font-size:13px;color:var(–cream);}
+.h-date{font-size:11px;color:var(–muted);margin-top:2px;}
+.h-pts{font-family:‘Cormorant Garamond’,serif;font-size:18px;font-weight:600;}
+.h-plus{color:var(–green);}
+.h-minus{color:var(–red);}
+
+/* Empty */
+.empty{text-align:center;padding:40px 20px;color:var(–muted);}
+.empty-ico{font-size:42px;margin-bottom:12px;}
+.empty p{font-size:13px;line-height:1.7;}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{background:var(–surface);border:1px solid var(–border);border-radius:24px 24px 0 0;padding:24px 22px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;transform:translateY(40px);transition:transform .4s cubic-bezier(.34,1.2,.64,1);}
+.modal-bg.open .modal{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;background:var(–border);border-radius:2px;margin:0 auto 18px;}
+.modal-title{font-family:‘Cormorant Garamond’,serif;font-size:22px;color:var(–cream);text-align:center;margin-bottom:18px;}
+
+/* Toast */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(16px);background:var(–card);border:1px solid var(–border);color:var(–cream);padding:11px 22px;border-radius:50px;font-size:13px;z-index:300;opacity:0;pointer-events:none;transition:all .4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,0.6);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(–border);border-radius:2px;}
+
+/* Color picker menu */
+.color-menu-wrap{position:relative;}
+.color-menu-btn{background:transparent;border:1px solid var(–border);border-radius:8px;padding:7px 11px;color:var(–muted);font-size:15px;cursor:pointer;transition:all .2s;line-height:1;}
+.color-menu-btn:hover{border-color:var(–rose);color:var(–rose-light);}
+.color-menu{position:absolute;top:calc(100% + 8px);right:0;background:var(–card);border:1px solid var(–border);border-radius:16px;padding:16px;z-index:200;width:220px;box-shadow:0 12px 40px rgba(0,0,0,0.6);display:none;}
+.color-menu.open{display:block;animation:fadeUp .25s ease;}
+.color-menu-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(–gold);margin-bottom:12px;}
+.color-swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+.swatch{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}
+.swatch:hover{transform:scale(1.15);}
+.swatch.active{border-color:white;box-shadow:0 0 0 2px rgba(255,255,255,0.3);}
+.color-menu-label{font-size:11px;color:var(–muted);margin-bottom:6px;letter-spacing:1px;}
+.custom-color-row{display:flex;align-items:center;gap:8px;}
+.custom-color-row input[type=color]{width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;background:transparent;padding:0;}
+.custom-color-row span{font-size:12px;color:var(–text-dim);}
+
+/* Task type selector */
+.type-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.type-btn{padding:8px 14px;border-radius:20px;border:1px solid var(–border);background:transparent;color:var(–muted);font-size:12px;cursor:pointer;font-family:‘Noto Sans TC’,sans-serif;transition:all .2s;}
+.type-btn:hover{border-color:var(–violet-light);color:var(–violet-light);}
+.type-btn.sel{background:var(–violet);color:white;border-color:var(–violet);}
+.type-btn[data-t=“limited”].sel{background:linear-gradient(135deg,#c05050,#8a2020);border-color:#c05050;}
+.type-desc{font-size:12px;color:var(–muted);font-style:italic;padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:8px;}
+.deadline-tabs{display:flex;gap:8px;margin-bottom:2px;}
+.dl-tab{padding:7px 14px;border-radius:20px;border:1px solid var(–border);background:transparent;color:var(–muted);font-size:12px;cursor:pointer;font-family:‘Noto Sans TC’,sans-serif;transition:all .2s;}
+.dl-tab.sel{background:var(–red);color:white;border-color:var(–red);}
+/* Limited task badge on cards */
+.limited-banner{background:linear-gradient(135deg,rgba(192,80,80,0.25),rgba(138,32,32,0.15));border:1px solid rgba(192,80,80,0.4);border-radius:10px;padding:7px 12px;margin-top:10px;font-size:12px;color:#e88;display:flex;align-items:center;gap:6px;}
+.limited-banner.expired{background:rgba(80,80,80,0.2);border-color:rgba(120,120,120,0.3);color:var(–muted);}
+.chip-limited{background:rgba(192,80,80,0.2);color:#e88;border:1px solid rgba(192,80,80,0.35);}
+.chip-normal{background:rgba(100,180,120,0.15);color:#8d8;border:1px solid rgba(100,180,120,0.3);}
+.chip-daily{background:rgba(100,150,220,0.15);color:#8af;border:1px solid rgba(100,150,220,0.3);}
+
+</style>
+</head>
+<body>
+<div class="ambient"></div>
+
+<!-- LOGIN -->
+
+<div id="login">
+  <div class="login-box">
+    <div class="login-eyebrow">✦ Admin ✦</div>
+    <h1 class="login-title">後台<em>管理</em></h1>
+    <p class="login-sub">管理員專屬，請輸入密語</p>
+    <div class="crown">👑</div>
+    <label class="flabel">管理員密語</label>
+    <input class="finput" type="password" id="pw" placeholder="輸入密語…" onkeydown="if(event.key==='Enter')login()">
+    <button class="btn-enter" onclick="login()">進入後台 →</button>
+    <div class="hint">提示：0301 🔐</div>
+  </div>
+</div>
+
+<!-- APP -->
+
+<div id="app">
+  <div class="topbar">
+    <div class="tb-crown">👑</div>
+    <div>
+      <div class="tb-name">女王後台</div>
+      <div class="tb-role">Admin · 管理員</div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="color-menu-wrap">
+      <button class="color-menu-btn" onclick="toggleColorMenu()" title="更換背景顏色">🎨</button>
+      <div class="color-menu" id="color-menu">
+        <div class="color-menu-title">✦ 背景顏色</div>
+        <div class="color-swatches" id="color-swatches"></div>
+        <div class="color-menu-label">自訂顏色</div>
+        <div class="custom-color-row">
+          <input type="color" id="custom-color" value="#0f0a0a">
+          <span>點選選色器</span>
+        </div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="logout()">登出</button>
+  </div>
+
+  <div class="content">
+    <!-- 任務審核 -->
+    <div class="panel active" id="p-review">
+      <div class="sec-title">任務審核</div>
+      <div class="sec-sub">審核他提交的完成申請</div>
+      <div id="review-list"></div>
+    </div>
+
+```
+<!-- 兌換審核 -->
+<div class="panel" id="p-redeem">
+  <div class="sec-title">兌換審核</div>
+  <div class="sec-sub">審核他的獎勵兌換申請</div>
+  <div class="stats3" style="grid-template-columns:1fr 1fr;margin-bottom:18px">
+    <div class="stat-card">
+      <div class="stat-val" id="redeem-pts-display">0</div>
+      <div class="stat-lbl">使用者目前點數</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="redeem-pending-count">0</div>
+      <div class="stat-lbl">待審核件數</div>
+    </div>
+  </div>
+  <div id="redeem-list"></div>
+</div>
+
+<!-- 任務管理 -->
+<div class="panel" id="p-tasks">
+  <div class="sec-title">任務管理</div>
+  <div class="sec-sub">新增、刪除、管理所有任務</div>
+  <button class="btn btn-violet btn-full" onclick="openModal('modal-task')">＋ 新增任務</button>
+  <div id="task-list"></div>
+</div>
+
+<!-- 獎勵管理 -->
+<div class="panel" id="p-rewards">
+  <div class="sec-title">獎勵管理</div>
+  <div class="sec-sub">新增可供兌換的獎勵項目</div>
+  <button class="btn btn-gold btn-full" onclick="openModal('modal-reward')">＋ 新增獎勵</button>
+  <div id="reward-list"></div>
+</div>
+
+<!-- 點數管理 -->
+<div class="panel" id="p-points">
+  <div class="sec-title">點數管理</div>
+  <div class="sec-sub">查看與調整使用者點數</div>
+  <div class="stats3" id="pts-stats"></div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px;color:var(--cream)">手動調整點數</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">調整量</label>
+        <input class="form-input" id="pts-delta" type="number" placeholder="例：50 或 -20">
+      </div>
+      <div class="form-group">
+        <label class="form-label">原因</label>
+        <input class="form-input" id="pts-reason" placeholder="例：獎勵加碼">
+      </div>
+    </div>
+    <button class="btn btn-violet btn-full" style="margin-bottom:0" onclick="adjustPoints()">調整點數</button>
+  </div>
+  <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--cream);margin:20px 0 12px">點數明細</div>
+  <div id="hist-list"></div>
+</div>
+```
+
+  </div>
+
+  <!-- Bottom Nav (admin only, 4 items) -->
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="go('review',this)"><span class="ico">⏳</span><span>任務審核<span class="nbadge" id="b-task">0</span></span></button>
+    <button class="nav-btn" onclick="go('redeem',this)"><span class="ico">🎁</span><span>兌換審核<span class="nbadge" id="b-redeem">0</span></span></button>
+    <button class="nav-btn" onclick="go('tasks',this)"><span class="ico">📋</span>任務管理</button>
+    <button class="nav-btn" onclick="go('rewards',this)"><span class="ico">🛍️</span>獎勵管理</button>
+    <button class="nav-btn" onclick="go('points',this)"><span class="ico">💎</span>點數管理</button>
+  </nav>
+</div>
+
+<!-- Modal: Add Task -->
+
+<div class="modal-bg" id="modal-task" onclick="closeModal('modal-task')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✦ 新增任務</div>
+    <div class="form-group"><label class="form-label">任務名稱</label><input class="form-input" id="nt-title" placeholder="例：幫我按摩15分鐘"></div>
+    <div class="form-group"><label class="form-label">任務說明</label><textarea class="form-textarea" id="nt-desc" rows="2" placeholder="詳細說明…"></textarea></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">難度</label>
+        <select class="form-select" id="nt-diff">
+          <option value="🌸 簡單">🌸 簡單</option>
+          <option value="🌼 普通" selected>🌼 普通</option>
+          <option value="🔥 困難">🔥 困難</option>
+          <option value="💎 挑戰">💎 挑戰</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">獎勵點數</label><input class="form-input" id="nt-pts" type="number" min="1" value="10"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">任務類型</label>
+      <div class="type-row">
+        <button class="type-btn sel" data-t="normal" onclick="selectType(this)">♾️ 常態任務</button>
+        <button class="type-btn" data-t="daily" onclick="selectType(this)">📅 日常任務</button>
+        <button class="type-btn" data-t="limited" onclick="selectType(this)">⏰ 限時任務</button>
+      </div>
+      <div class="type-desc" id="type-desc">完成後保留，可無限次重複完成</div>
+    </div>
+    <div class="form-group" id="deadline-wrap" style="display:none">
+      <label class="form-label">⏰ 限時設定</label>
+      <div class="deadline-tabs">
+        <button class="dl-tab sel" data-dl="until" onclick="selectDl(this)">到幾點前完成</button>
+        <button class="dl-tab" data-dl="within" onclick="selectDl(this)">多久之內完成</button>
+      </div>
+      <div id="dl-until" style="margin-top:10px">
+        <input class="form-input" type="datetime-local" id="nt-until">
+      </div>
+      <div id="dl-within" style="display:none;margin-top:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" type="number" id="nt-within-val" min="1" value="24" style="width:90px">
+          <select class="form-select" id="nt-within-unit" style="flex:1">
+            <option value="min">分鐘</option>
+            <option value="hour" selected>小時</option>
+            <option value="day">天</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">圖示</label>
+      <div class="icon-row" id="task-icons">
+        <button class="ic-btn sel" data-i="⚔️">⚔️</button><button class="ic-btn" data-i="🌟">🌟</button>
+        <button class="ic-btn" data-i="🎯">🎯</button><button class="ic-btn" data-i="💪">💪</button>
+        <button class="ic-btn" data-i="🍳">🍳</button><button class="ic-btn" data-i="🧹">🧹</button>
+        <button class="ic-btn" data-i="📚">📚</button><button class="ic-btn" data-i="🏃">🏃</button>
+        <button class="ic-btn" data-i="💆">💆</button><button class="ic-btn" data-i="🎮">🎮</button>
+      </div>
+    </div>
+    <button class="btn btn-violet btn-full" style="margin-bottom:0" onclick="addTask()">發布任務 ✦</button>
+  </div>
+</div>
+
+<!-- Modal: Add Reward -->
+
+<div class="modal-bg" id="modal-reward" onclick="closeModal('modal-reward')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✦ 新增獎勵</div>
+    <div class="form-group"><label class="form-label">獎勵名稱</label><input class="form-input" id="nr-name" placeholder="例：免費約會一次"></div>
+    <div class="form-group"><label class="form-label">獎勵說明</label><textarea class="form-textarea" id="nr-desc" rows="2" placeholder="說明詳情…"></textarea></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">所需點數</label><input class="form-input" id="nr-pts" type="number" min="1" value="50"></div>
+      <div class="form-group"><label class="form-label">圖示</label>
+        <div class="icon-row" id="reward-icons">
+          <button class="ic-btn sel" data-i="🎁">🎁</button><button class="ic-btn" data-i="😘">😘</button>
+          <button class="ic-btn" data-i="🍽️">🍽️</button><button class="ic-btn" data-i="🎬">🎬</button>
+          <button class="ic-btn" data-i="🛍️">🛍️</button><button class="ic-btn" data-i="🌸">🌸</button>
+          <button class="ic-btn" data-i="💆">💆</button><button class="ic-btn" data-i="🎫">🎫</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-gold btn-full" style="margin-bottom:0" onclick="addReward()">新增獎勵 ✦</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PASS = '0301';
+
+let currentTaskType='normal';
+let currentDlType='until';
+function selectType(btn){
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  currentTaskType=btn.dataset.t;
+  const descs={normal:'完成後保留，可無限次重複完成',daily:'完成一次後自動移除',limited:'有時間限制，完成後移除'};
+  document.getElementById('type-desc').textContent=descs[currentTaskType]||'';
+  document.getElementById('deadline-wrap').style.display=currentTaskType==='limited'?'block':'none';
+}
+function selectDl(btn){
+  document.querySelectorAll('.dl-tab').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  currentDlType=btn.dataset.dl;
+  document.getElementById('dl-until').style.display=currentDlType==='until'?'block':'none';
+  document.getElementById('dl-within').style.display=currentDlType==='within'?'block':'none';
+}
+
+let taskIcon = '⚔️', rewardIcon = '🎁';
+
+const JSONBIN_KEY = '$2a$10$qmIK4LLlfsdyTn0m0.zue.Ofm8PXpQUpnIgyuObkTwd8RWHXIUw.e';
+let _binId = localStorage.getItem('jb-bin-id') || null;
+let _cache = null;
+
+async function getData() {
+  try {
+    if (!_binId) {
+      // No bin yet — create one
+      const res = await fetch('https://api.jsonbin.io/v3/b', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_KEY,
+          'X-Bin-Name': 'love-tasks',
+          'X-Private': 'false'
+        },
+        body: JSON.stringify({points:0,tasks:[],rewards:[],treasury:[],history:[],pendingRedeem:[],avatarHim:null})
+      });
+      const j = await res.json();
+      _binId = j.metadata.id;
+      localStorage.setItem('jb-bin-id', _binId);
+    }
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${_binId}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    const j = await res.json();
+    _cache = j.record || {points:0,tasks:[],rewards:[],treasury:[],history:[],pendingRedeem:[],avatarHim:null};
+  } catch(e) {
+    console.error('getData failed:', e);
+    _cache = _cache || {points:0,tasks:[],rewards:[],treasury:[],history:[],pendingRedeem:[],avatarHim:null};
+  }
+  return _cache;
+}
+
+async function saveData(d) {
+  _cache = d;
+  try {
+    if (!_binId) await getData(); // ensure bin exists
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${_binId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_KEY
+      },
+      body: JSON.stringify(d)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+  } catch(e) {
+    console.error('saveData failed:', e);
+    toast('❌ 儲存失敗：' + e.message);
+  }
+}
+function addHist(d,icon,title,delta){ if(!d.history)d.history=[]; d.history.unshift({id:Date.now(),icon,title,delta,date:new Date().toLocaleString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}); }
+
+async function login(){
+  if(document.getElementById('pw').value!==PASS){
+    document.getElementById('pw').classList.add('error');
+    setTimeout(()=>document.getElementById('pw').classList.remove('error'),600);
+    toast('密語不對 🔐'); return;
+  }
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  go('review', document.querySelector('.nav-btn'));
+}
+function logout(){ document.getElementById('pw').value=''; document.getElementById('app').classList.remove('visible'); document.getElementById('login').classList.remove('hidden'); }
+
+async function go(tab, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+tab).classList.add('active');
+  btn.classList.add('active');
+  updateBadges();
+  if(tab==='review') renderReview();
+  if(tab==='redeem') renderRedeemReview();
+  if(tab==='tasks') renderTasks();
+  if(tab==='rewards') renderRewards();
+  if(tab==='points') renderPoints();
+}
+
+async function updateBadges(){
+  const d=await getData();
+  const t=(d.tasks||[]).filter(x=>x.status==='pending').length;
+  const r=(d.pendingRedeem||[]).filter(x=>x.status==='pending').length;
+  document.getElementById('b-task').textContent=t||'';
+  document.getElementById('b-redeem').textContent=r||'';
+}
+
+// ── 任務審核 ──
+async function renderReview(){
+  const d=await getData(); const el=document.getElementById('review-list');
+  const list=(d.tasks||[]).filter(t=>t.status==='pending');
+  if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><p>目前沒有待審核的任務</p></div>`; return; }
+  el.innerHTML=list.map(t=>`
+    <div class="card s-pending">
+      <div class="card-head"><div class="card-ico">${t.icon||'⚔️'}</div>
+        <div class="card-body">
+          <div class="card-title">${t.title}</div>
+          ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
+          <div class="card-meta"><span class="chip chip-pts">+${t.pts} 點</span><span class="chip chip-diff">${t.diff}</span><span class="chip chip-pending">⏳ 等待審核</span></div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-green" onclick="approveTask(${t.id})">✅ 批准完成</button>
+        <button class="btn btn-red" onclick="toggleReject('rj-${t.id}')">❌ 駁回</button>
+      </div>
+      <div class="reject-wrap" id="rj-${t.id}">
+        <input id="rj-inp-${t.id}" placeholder="駁回原因（可不填）…">
+        <button class="btn btn-red" onclick="rejectTask(${t.id})">確認駁回</button>
+      </div>
+    </div>`).join('');
+}
+async function approveTask(id){
+  const d=await getData(); const t=d.tasks.find(function(x){return String(x.id)===String(id);}); if(!t) return;
+  const pts=t.pts;
+  const title=t.title;
+  const icon=t.icon||'⚔️';
+  const type=t.taskType||'normal';
+  if(type==='normal'){
+    // Keep task, reset to locked for next time
+    t.status='locked'; t.rejectReason='';
+  } else {
+    // daily or limited: remove after completion
+    d.tasks=d.tasks.filter(function(x){return String(x.id)!==String(id);});
+  }
+  d.points+=pts; addHist(d,icon,'完成任務：'+title,pts);
+  await saveData(d); renderReview(); updateBadges(); toast('批准！+'+pts+' 點 🎉');
+}
+function toggleReject(id){ document.getElementById(id).classList.toggle('show'); }
+async function rejectTask(id){
+  const d=await getData(); const t=d.tasks.find(x=>x.id===id); if(!t) return;
+  t.status='rejected'; t.rejectReason=document.getElementById(`rj-inp-${id}`)?.value.trim()||'需要再努力！';
+  await saveData(d); renderReview(); updateBadges(); toast('任務已駁回 💔');
+}
+
+// ── 兌換審核 ──
+async function renderRedeemReview(){
+  const d=await getData(); const el=document.getElementById('redeem-list');
+  if(!d.pendingRedeem) d.pendingRedeem=[];
+  const list=d.pendingRedeem.filter(p=>p.status==='pending');
+  const ptsEl=document.getElementById('redeem-pts-display');
+  const cntEl=document.getElementById('redeem-pending-count');
+  if(ptsEl) ptsEl.textContent=d.points;
+  if(cntEl) cntEl.textContent=list.length;
+  if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">🎁</div><p>目前沒有待審核的兌換申請</p></div>`; return; }
+  el.innerHTML=list.map(p=>`
+    <div class="card s-pending">
+      <div class="card-head"><div class="card-ico">${p.icon||'🎁'}</div>
+        <div class="card-body">
+          <div class="card-title">${p.name}</div>
+          <div class="card-meta"><span class="chip chip-pts">💎 ${p.pts} 點</span><span class="chip chip-pending">⏳ 兌換申請</span></div>
+          <div class="card-desc" style="margin-top:6px">申請日期：${p.date}</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-green" onclick="approveRedeem(${p.id})">✅ 批准兌換</button>
+        <button class="btn btn-red" onclick="rejectRedeem(${p.id})">❌ 駁回</button>
+      </div>
+    </div>`).join('');
+}
+async function approveRedeem(id){
+  const d=await getData(); if(!d.pendingRedeem)d.pendingRedeem=[];
+  const p=d.pendingRedeem.find(x=>x.id===id); if(!p) return;
+  if(d.points<p.pts){ toast('使用者點數不足！'); return; }
+  p.status='approved'; d.points-=p.pts;
+  if(!d.treasury)d.treasury=[];
+  d.treasury.unshift({id:Date.now(),rewardId:p.rewardId,name:p.name,icon:p.icon,pts:p.pts,date:new Date().toLocaleDateString('zh-TW'),redeemed:false});
+  addHist(d,p.icon||'🎁',`兌換：${p.name}`,-p.pts);
+  await saveData(d); renderRedeemReview(); updateBadges(); toast(`已批准「${p.name}」🎉`);
+}
+async function rejectRedeem(id){
+  const d=await getData(); if(!d.pendingRedeem)d.pendingRedeem=[];
+  const p=d.pendingRedeem.find(x=>x.id===id); if(!p) return;
+  p.status='rejected'; await saveData(d); renderRedeemReview(); updateBadges(); toast('兌換申請已駁回');
+}
+
+// ── 任務管理 ──
+function deadlineText(t){
+  if(t.taskType!=='limited') return '';
+  const now=Date.now();
+  if(t.deadlineType==='until'&&t.deadlineUntil){
+    const ms=new Date(t.deadlineUntil)-now;
+    const expired=ms<0;
+    const abs=Math.abs(ms);
+    const h=Math.floor(abs/3600000),m=Math.floor((abs%3600000)/60000);
+    const timeStr=new Date(t.deadlineUntil).toLocaleString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="limited-banner ${expired?'expired':''}">⏰ ${expired?'已逾期':'截止'} ${timeStr}${!expired?` (剩 ${h}h${m}m)`:''}</div>`;
+  }
+  if(t.deadlineType==='within'&&t.deadlineFrom&&t.deadlineDuration){
+    const endMs=t.deadlineFrom+t.deadlineDuration;
+    const ms=endMs-now;
+    const expired=ms<0;
+    const abs=Math.abs(ms);
+    const h=Math.floor(abs/3600000),m=Math.floor((abs%3600000)/60000);
+    return `<div class="limited-banner ${expired?'expired':''}">⏰ ${expired?'已逾期，超時':'剩餘'} ${expired?`${h}h${m}m`:`${h}h${m}m`}</div>`;
+  }
+  return '';
+}
+function typeChip(t){
+  if(!t.taskType||t.taskType==='normal') return '<span class="chip chip-normal">♾️ 常態</span>';
+  if(t.taskType==='daily') return '<span class="chip chip-daily">📅 日常</span>';
+  if(t.taskType==='limited') return '<span class="chip chip-limited">⏰ 限時</span>';
+  return '';
+}
+async function renderTasks(){
+  const d=await getData(); const el=document.getElementById('task-list');
+  const smap={locked:'🔒 未解鎖',pending:'⏳ 審核中',approved:'✅ 完成',rejected:'❌ 駁回'};
+  if(!d.tasks||!d.tasks.length){ el.innerHTML='<div class="empty"><div class="empty-ico">📋</div><p>還沒有任務</p></div>'; return; }
+  let rows='';
+  d.tasks.forEach(function(t){
+    const resetBtn = t.status!=='locked' ? '<button class="btn btn-ghost" onclick="resetTask(\''+t.id+'\')">🔄 重置</button>' : '';
+    rows += '<div class="card s-'+t.status+'" id="tc-'+t.id+'">'
+      +'<div class="card-head"><div class="card-ico">'+(t.icon||'⚔️')+'</div>'
+      +'<div class="card-body">'
+      +'<div class="card-title">'+t.title+'</div>'
+      +'<div class="card-meta"><span class="chip chip-pts">+'+t.pts+' 點</span><span class="chip chip-diff">'+t.diff+'</span>'+typeChip(t)+'<span class="chip chip-'+t.status+'">'+smap[t.status]+'</span></div>'
+      +deadlineText(t)
+      +'</div></div>'
+      +'<div class="card-actions">'
+      +'<button class="btn btn-ghost" onclick="delTask(\''+t.id+'\')">🗑 刪除</button>'
+      +resetBtn
+      +'</div></div>';
+  });
+  el.innerHTML=rows;
+}
+async function delTask(id){
+  const d=await getData();
+  d.tasks=d.tasks.filter(function(t){return String(t.id)!==String(id);});
+  await saveData(d); renderTasks(); toast('已刪除');
+}
+async function resetTask(id){
+  const d=await getData();
+  const t=d.tasks.find(function(x){return String(x.id)===String(id);});
+  if(!t)return; t.status='locked'; t.rejectReason=''; await saveData(d); renderTasks(); toast('已重置');
+}
+
+// ── 獎勵管理 ──
+async function renderRewards(){
+  const d=await getData(); const el=document.getElementById('reward-list');
+  if(!d.rewards.length){ el.innerHTML=`<div class="empty"><div class="empty-ico">🎁</div><p>還沒有獎勵</p></div>`; return; }
+  el.innerHTML=d.rewards.map(r=>`
+    <div class="card">
+      <div class="card-head"><div class="card-ico">${r.icon||'🎁'}</div>
+        <div class="card-body">
+          <div class="card-title">${r.name}</div>
+          ${r.desc?`<div class="card-desc">${r.desc}</div>`:''}
+          <div class="card-meta"><span class="chip chip-pts">💎 ${r.pts} 點</span></div>
+        </div>
+      </div>
+      <div class="card-actions"><button class="btn btn-ghost" onclick="delReward(${r.id})">🗑 刪除</button></div>
+    </div>`).join('');
+}
+async function delReward(id){ if(!confirm('確定刪除？'))return; const d=await getData(); d.rewards=d.rewards.filter(r=>r.id!==id); await saveData(d); renderRewards(); toast('已刪除'); }
+
+// ── 點數管理 ──
+async function renderPoints(){
+  const d=await getData();
+  const earned=(d.history||[]).filter(h=>h.delta>0).reduce((a,h)=>a+h.delta,0);
+  const spent=(d.history||[]).filter(h=>h.delta<0).reduce((a,h)=>a+Math.abs(h.delta),0);
+  document.getElementById('pts-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-val">${d.points}</div><div class="stat-lbl">當前餘額</div></div>
+    <div class="stat-card"><div class="stat-val">${earned}</div><div class="stat-lbl">累計獲得</div></div>
+    <div class="stat-card"><div class="stat-val">${spent}</div><div class="stat-lbl">累計消費</div></div>`;
+  const el=document.getElementById('hist-list');
+  if(!d.history||!d.history.length){ el.innerHTML=`<div class="empty"><div class="empty-txt">尚無紀錄</div></div>`; return; }
+  el.innerHTML=d.history.map(h=>`
+    <div class="h-item">
+      <div class="h-ico">${h.icon}</div>
+      <div class="h-body"><div class="h-title">${h.title}</div><div class="h-date">${h.date}</div></div>
+      <div class="h-pts ${h.delta>0?'h-plus':'h-minus'}">${h.delta>0?'+':''}${h.delta}</div>
+    </div>`).join('');
+}
+async function adjustPoints(){
+  const delta=parseInt(document.getElementById('pts-delta').value);
+  const reason=document.getElementById('pts-reason').value.trim()||'手動調整';
+  if(isNaN(delta)||delta===0){ toast('請輸入有效數字'); return; }
+  const d=await getData(); d.points=Math.max(0,d.points+delta); addHist(d,'💎',reason,delta);
+  await saveData(d); renderPoints(); toast(`點數 ${delta>0?'+':''}${delta} 💎`);
+}
+
+// ── Modals ──
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('#task-icons .ic-btn').forEach(b=>{
+  b.onclick=()=>{ document.querySelectorAll('#task-icons .ic-btn').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); taskIcon=b.dataset.i; };
+});
+document.querySelectorAll('#reward-icons .ic-btn').forEach(b=>{
+  b.onclick=()=>{ document.querySelectorAll('#reward-icons .ic-btn').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); rewardIcon=b.dataset.i; };
+});
+
+async function addTask(){
+  const title=document.getElementById('nt-title').value.trim();
+  if(!title){ toast('請輸入任務名稱'); return; }
+  const taskType = currentTaskType;
+  let deadlineType=null, deadlineUntil=null, deadlineFrom=null, deadlineDuration=null;
+  if(taskType==='limited'){
+    deadlineType = currentDlType;
+    if(deadlineType==='until'){
+      const v=document.getElementById('nt-until').value;
+      if(!v){ toast('請設定截止時間'); return; }
+      deadlineUntil=v;
+    } else {
+      const val=parseInt(document.getElementById('nt-within-val').value)||1;
+      const unit=document.getElementById('nt-within-unit').value;
+      const mult={min:60000,hour:3600000,day:86400000}[unit]||3600000;
+      deadlineFrom=Date.now(); deadlineDuration=val*mult;
+    }
+  }
+  const d=await getData();
+  d.tasks.unshift({
+    id:Date.now(), title,
+    desc:document.getElementById('nt-desc').value.trim(),
+    diff:document.getElementById('nt-diff').value,
+    pts:parseInt(document.getElementById('nt-pts').value)||10,
+    icon:taskIcon, status:'locked', rejectReason:'',
+    taskType, deadlineType, deadlineUntil, deadlineFrom, deadlineDuration
+  });
+  await saveData(d); closeModal('modal-task');
+  document.getElementById('nt-title').value='';
+  document.getElementById('nt-desc').value='';
+  renderTasks(); toast('任務已發布 📜');
+}
+async function addReward(){
+  const name=document.getElementById('nr-name').value.trim();
+  if(!name){ toast('請輸入獎勵名稱'); return; }
+  const d=await getData();
+  d.rewards.unshift({id:Date.now(),name,desc:document.getElementById('nr-desc').value.trim(),pts:parseInt(document.getElementById('nr-pts').value)||50,icon:rewardIcon});
+  await saveData(d); closeModal('modal-reward'); document.getElementById('nr-name').value=''; document.getElementById('nr-desc').value='';
+  renderRewards(); toast('獎勵已新增 🎁');
+}
+
+function toast(msg){ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),2500); }
+
+updateBadges();
+
+// ── Background color picker ──
+const SWATCHES = [
+  {c:'#0f0a0a',label:'原色深紅'},{c:'#0a0a0f',label:'深紫'},{c:'#0a0f0a',label:'深綠'},
+  {c:'#0f0f0a',label:'深金'},{c:'#0a0f0f',label:'深青'},{c:'#1a0a1a',label:'暗紫紅'},
+  {c:'#1a1208',label:'暗琥珀'},{c:'#080f18',label:'深海藍'},{c:'#18080f',label:'深玫瑰'},
+  {c:'#f5ede0',label:'奶油白'},
+];
+function initColorMenu(){
+  const wrap = document.getElementById('color-menu');
+  const saved = localStorage.getItem('bg-color');
+  if(saved){ document.body.style.background = saved; adaptTextColors(saved); }
+
+  const swatchesEl = document.getElementById('color-swatches');
+  swatchesEl.innerHTML = SWATCHES.map((s,i)=>
+    `<div class="swatch ${saved===s.c?'active':''}" style="background:${s.c}" title="${s.label}" onclick="setBg('${s.c}',this)"></div>`
+  ).join('');
+
+  document.getElementById('custom-color').value = saved||'#0f0a0a';
+  document.getElementById('custom-color').addEventListener('input', e=>{
+    setBg(e.target.value, null);
+  });
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.color-menu-wrap')) wrap.classList.remove('open');
+  });
+}
+function toggleColorMenu(){ document.getElementById('color-menu').classList.toggle('open'); }
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  if(hex.length===3) hex=hex.split('').map(c=>c+c).join('');
+  const n=parseInt(hex,16);
+  return {r:(n>>16)&255, g:(n>>8)&255, b:n&255};
+}
+function getLuminance(hex){
+  const {r,g,b}=hexToRgb(hex);
+  const [rs,gs,bs]=[r,g,b].map(c=>{c/=255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);});
+  return 0.2126*rs+0.7152*gs+0.0722*bs;
+}
+function adaptTextColors(hex){
+  // Parse hex to rgb
+  hex = hex.replace('#','');
+  if(hex.length===3) hex=hex.split('').map(x=>x+x).join('');
+  const r=parseInt(hex.slice(0,2),16), g=parseInt(hex.slice(2,4),16), b=parseInt(hex.slice(4,6),16);
+
+  // Perceived luminance (WCAG)
+  const toLinear=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
+  const lum = 0.2126*toLinear(r)+0.7152*toLinear(g)+0.0722*toLinear(b);
+  const isDark = lum < 0.35;
+
+  const root = document.documentElement;
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,Math.round(v)));
+
+  if(isDark){
+    // Light text on dark bg — shift toward complementary warm/cool tint
+    const boost = v => clamp(v*0.15 + 215, 180, 255);
+    const mid   = v => clamp(v*0.2  + 110, 80,  180);
+    const dim   = v => clamp(v*0.25 + 70,  55,  150);
+    const cardL = v => clamp(v*1.6  + 18,  12,  60);
+    const surfL = v => clamp(v*1.4  + 10,  8,   40);
+
+    root.style.setProperty('--cream',   `rgb(${boost(r)},${boost(g)},${boost(b)})`);
+    root.style.setProperty('--text',    `rgb(${boost(r)},${boost(g)},${boost(b)})`);
+    root.style.setProperty('--text-dim',`rgb(${mid(r)},${mid(g)},${mid(b)})`);
+    root.style.setProperty('--muted',   `rgb(${dim(r)},${dim(g)},${dim(b)})`);
+    root.style.setProperty('--card',    `rgb(${cardL(r)},${cardL(g)},${cardL(b)})`);
+    root.style.setProperty('--surface', `rgb(${surfL(r)},${surfL(g)},${surfL(b)})`);
+    root.style.setProperty('--border',  `rgba(${clamp(r*2+60,40,200)},${clamp(g*2+40,30,180)},${clamp(b*2+40,30,180)},0.22)`);
+  } else {
+    // Dark text on light bg
+    const shadow = v => clamp(v*0.12, 0, 60);
+    const dimT   = v => clamp(v*0.35, 20, 120);
+    const mutedT = v => clamp(v*0.5,  40, 160);
+    const cardL  = v => clamp(v*0.88 - 8, 150, 245);
+    const surfL  = v => clamp(v*0.93 - 4, 170, 252);
+
+    root.style.setProperty('--cream',   `rgb(${shadow(r)},${shadow(g)},${shadow(b)})`);
+    root.style.setProperty('--text',    `rgb(${shadow(r)},${shadow(g)},${shadow(b)})`);
+    root.style.setProperty('--text-dim',`rgb(${dimT(r)},${dimT(g)},${dimT(b)})`);
+    root.style.setProperty('--muted',   `rgb(${mutedT(r)},${mutedT(g)},${mutedT(b)})`);
+    root.style.setProperty('--card',    `rgb(${cardL(r)},${cardL(g)},${cardL(b)})`);
+    root.style.setProperty('--surface', `rgb(${surfL(r)},${surfL(g)},${surfL(b)})`);
+    root.style.setProperty('--border',  `rgba(${clamp(255-r,30,180)},${clamp(255-g,20,160)},${clamp(255-b,20,160)},0.18)`);
+  }
+}
+function setBg(color, swatchEl){
+  document.body.style.background = color;
+  localStorage.setItem('bg-color', color);
+  adaptTextColors(color);
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  if(swatchEl) swatchEl.classList.add('active');
+  document.getElementById('custom-color').value = color;
+}
+
+initColorMenu();
+</script>
+
+</body>
+</html>
